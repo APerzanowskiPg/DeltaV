@@ -30,20 +30,28 @@ public class CamController {
     float xVelocity;
     float yVelocity;
     
+    float scrollLevel;
+    float scrollVelocity;
+    float baseDst;
     
     CamController()
     {
         orientation = new Vector2(0,0);
         dragging = false;
-        dst = 10000;
+        scrollLevel = 0f;
+        baseDst = 5f;
+        dst = 5f;
         
         xVelocity = 0 - 180f;
         yVelocity = 0 - 90f;
         
+        scrollVelocity = 0.1f;
     }
     
     void TransformCam(Camera cam, Vector3 objOfInterest)
     {
+        dst = (float)(baseDst*Math.exp(scrollLevel));
+        
         Vector3 camPos = new Vector3(dst, 0, 0);
         //Quaternion quatRot = new Quaternion();
         //quatRot = quatRot.setEulerAngles(0, 0, orientation.y);
@@ -92,5 +100,9 @@ public class CamController {
         lastY = screenY;
     }
     
+    void OnScroll(float y)
+    {
+        scrollLevel += y*scrollVelocity;
+    }
     
 }

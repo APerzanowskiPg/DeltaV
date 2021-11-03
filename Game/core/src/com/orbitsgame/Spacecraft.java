@@ -155,9 +155,12 @@ public class Spacecraft {
     
     void Render(ModelBatch batch)
     {
+        double dst = batch.getCamera().position.dst(lastState.position);
+        float scaleFactor = (float)( 1f + 0.03*dst*(0.5 + (1.0/Math.PI)*Math.atan(dst-6))  );
+        
         //setTransform
         modelInstance.transform.setToTranslation(lastState.position);
-        modelInstance.transform.scale(500, 500, 500);
+        modelInstance.transform.scale(scaleFactor, scaleFactor, scaleFactor);//(1f, 1f, 1f);
         //modelInstance.transform.rotate(orientation.GetQuaternion());
         //modelInstance.transform.rotate(orientation);
         Matrix4 rotMat = new Matrix4();

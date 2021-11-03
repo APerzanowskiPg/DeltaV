@@ -54,8 +54,8 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             cam.position.set(10000.0f, 10000.0f, 10000.0f);
             cam.up.set(0,0,1);
             cam.lookAt(0,0,0);
-            cam.near = 5f;
-            cam.far = 30000f;
+            cam.near = 0.1f;
+            cam.far = 20000f;
             cam.update();
 
             OrbitModel.Init();
@@ -80,6 +80,11 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
 	@Override
 	public void render () {
             spacecraft.Propagate(Gdx.graphics.getDeltaTime());
+            float dst = cam.position.dst(spacecraft.lastState.position);
+            cam.near = 0.5f*dst;
+            cam.far = 10000f*dst;
+            
+            camController.TransformCam(cam, spacecraft.lastState.position);
             
             Gdx.gl30.glEnable(GL20.GL_DEPTH_TEST);
             Gdx.gl30.glDepthFunc(GL20.GL_LESS);
@@ -97,7 +102,6 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             Gdx.gl30.glDepthFunc(GL20.GL_LESS);
             orbit.Render(cam);
             
-            camController.TransformCam(cam, spacecraft.lastState.position);
             spController.Update(Gdx.graphics.getDeltaTime());
 	}
 	
@@ -148,6 +152,7 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
     
     @Override
     public boolean scrolled(float x, float y) {
+        camController.OnScroll(y);
         return false;//return false;
     }
 

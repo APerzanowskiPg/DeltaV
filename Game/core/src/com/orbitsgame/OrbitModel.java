@@ -32,6 +32,8 @@ Using libGdx, source: http://libgdx.com/
  * @author adrian
  */
 public class OrbitModel { 
+    final short numOfVertices = 500;
+    
     
     public class StateVector
     {
@@ -104,12 +106,12 @@ public class OrbitModel {
     
     float[] calcOrbitPoints()
     {
-        float[] ret = new float[200*3];
+        float[] ret = new float[numOfVertices*3];
         
-        //200 points
-        for(short i=0; i<200; ++i)
+        //numOfVertices points
+        for(short i=0; i<numOfVertices; ++i)
         {
-            double E = 2*Math.PI*(i/200.0);
+            double E = 2*Math.PI*(i/((double)numOfVertices));
             
             // v - true anomaly
             double atanX = Math.sqrt(1+e)*Math.sin(0.5*E);
@@ -383,7 +385,7 @@ public class OrbitModel {
         err = Gdx.gl30.glGetError();
         Gdx.gl30.glBindBuffer(GL_ARRAY_BUFFER, VBO);
         err = Gdx.gl30.glGetError();
-        Gdx.gl30.glBufferData(GL_ARRAY_BUFFER, 200*3*4, vbo_data, GL_DYNAMIC_DRAW);
+        Gdx.gl30.glBufferData(GL_ARRAY_BUFFER, numOfVertices*3*4, vbo_data, GL_DYNAMIC_DRAW);
         err = Gdx.gl30.glGetError();
         
         
@@ -416,7 +418,7 @@ public class OrbitModel {
             // todo: remove redundant copies and reallocations caused by regenerating vertex buffer
             FloatBuffer vbo_data = createVerticesBuffer(vertices);
             Gdx.gl30.glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            Gdx.gl30.glBufferSubData(GL_ARRAY_BUFFER, 0, 200*3*4, vbo_data);
+            Gdx.gl30.glBufferSubData(GL_ARRAY_BUFFER, 0, numOfVertices*3*4, vbo_data);
             
             dirtyModel = false;
         }
@@ -437,7 +439,7 @@ public class OrbitModel {
         err = Gdx.gl30.glGetError();
         Gdx.gl30.glBindVertexArray(VAOi.get(0));
         err = Gdx.gl30.glGetError();
-        Gdx.gl30.glDrawArrays( GL_LINE_LOOP, 0, 200);
+        Gdx.gl30.glDrawArrays( GL_LINE_LOOP, 0, numOfVertices);
         err = Gdx.gl30.glGetError();
         
         //orbitMesh.render(shader, GL20.GL_LINES);
