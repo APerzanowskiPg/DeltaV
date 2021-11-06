@@ -64,7 +64,9 @@ public class OrbitModel {
     
     
     // hardoced Earth mi(G*Mearth) in [km^3/s^2]
-        double mi_E = 3.986e5;
+    double mi_E = 3.986e5;
+    // hardcoded Sphere of Influence of Earth
+    double SOI = 929000;
     
     //orbit params
     // a - semi-major axis in [km]
@@ -104,8 +106,32 @@ public class OrbitModel {
         return E1;
     }
     
+    // Does the same as SolveKeplerEquation, but for hyperbolic orbit(when a e>1, a<0)
+    // M = e*sinh(H) - H
+    double SolveKeplerEquationHyperbolic(double e, double M, double threshold, short maxIterations)
+    {
+        double H0 = M;
+        double H1 = 0;
+        
+        for(short i=0; i<maxIterations; ++i)
+        {
+            H1 = H0 - (e*Math.sinh(H0) - H0 - M)/(e*Math.cosh(H0) - 1);
+            if(Math.abs(H1-H0) <= threshold)
+            {
+                break;
+            }
+            H0 = H1;
+        }
+        return H1;
+    }
+    
     float[] calcOrbitPoints()
     {
+        if(e>1)
+        {
+            return calcOrbitPoints_hyperbolic();
+        }
+        
         float[] ret = new float[numOfVertices*3];
         
         //numOfVertices points
@@ -142,9 +168,58 @@ public class OrbitModel {
         return ret;
     }
     
+    float[] calcOrbitPoints_hyperbolic()
+    {
+        float[] ret = new float[numOfVertices*3];
+        
+        // aba - angle between asymptotes [rad]
+        double aba = 2*Math.acos(0-1/e);
+        
+        double H1 = acosh(Math.abs((a-SOI)/(a*e)));
+        double H2 = -H1;
+        double range = 2*H1;
+        
+        //numOfVertices points
+        for(short i=0; i<numOfVertices; ++i)
+        {
+            double H = range*(i/((double)numOfVertices)) - H1;
+            //double H = aba*(i/((double)numOfVertices)) - 0.5*aba;
+        
+            // v - true anomaly
+            double v = 2* Math.atan(Math.sqrt((e+1)/(e-1))*Math.tanh(0.5*H));
+        
+            // rc - distance to the central body[km]
+            double rc = a*(1-e*Math.cosh(H));
+            
+            //double tmp = Math.sqrt(a*mi_E)/rc;
+            
+            double o_x = rc*Math.cos(v);//0 - tmp*Math.sin(E);
+            double o_y = rc*Math.sin(v);//tmp * Math.sqrt(1-e*e)*Math.cos(E);
+            
+            float r_x = (float) ( o_x*(Math.cos(lan)*Math.cos(aop) - Math.sin(aop)*Math.cos(inc)*Math.sin(lan))
+                    - o_y*(Math.sin(aop)*Math.cos(lan) + Math.cos(aop)*Math.cos(inc)*Math.sin(lan)));
+            
+            float r_y = (float) ( o_x*(Math.cos(aop)*Math.sin(lan) + Math.sin(aop)*Math.cos(inc)*Math.cos(lan))
+                    + o_y*(Math.cos(aop)*Math.cos(inc)*Math.cos(lan) - Math.sin(aop)*Math.sin(lan)));
+            
+            float r_z = (float) ( o_x*Math.sin(aop)*Math.sin(inc) + o_y*Math.cos(aop)*Math.sin(inc) );
+            
+            ret[3*i + 0] = r_x;
+            ret[3*i + 1] = r_y;
+            ret[3*i + 2] = r_z;
+        }
+        
+        return ret;
+    }
+    
+    
     //@t_s time in seconds(since periapis)
     StateVector calcOrbitPositionAt(double t_s)
     {
+        if(e>1)
+        {
+            return calcOrbitPositionAt_Hyperbolic(t_s);
+        }
         // n - Mean angular motion in [rad]
         double n = Math.sqrt(mi_E/(a*a*a));
         
@@ -201,6 +276,73 @@ public class OrbitModel {
         return ret;
     }
     
+    private StateVector calcOrbitPositionAt_Hyperbolic(double t_s)
+    {
+        // n - Mean angular motion in [rad]
+        double n = Math.sqrt(mi_E/Math.abs(a*a*a));
+        
+        //M - mean anomaly at time t_s
+        double M = (t_s * n);
+        
+        //normalize the M
+        /*M = (M % (2*Math.PI));
+        if(M < 0)
+        {
+            M = (2*Math.PI + M);
+        }*/
+        
+        // Solve Kepler equation
+        double H = SolveKeplerEquationHyperbolic(e, M, 0.01, (short)20);
+        
+        // v - true anomaly
+        double v = 2* Math.atan(Math.sqrt((e+1)/(e-1))*Math.tanh(0.5*H));
+        
+        // rc - distance to the central body[km]
+        double rc = a*(1-e*Math.cosh(H));
+            
+        
+        
+        // calc Position 
+        double o_x = rc*Math.cos(v);//0 - tmp*Math.sin(E);
+        double o_y = rc*Math.sin(v);//tmp * Math.sqrt(1-e*e)*Math.cos(E);
+        
+        StateVector ret = new StateVector();
+        
+        ret.position.x = (float) ( o_x*(Math.cos(lan)*Math.cos(aop) - Math.sin(aop)*Math.cos(inc)*Math.sin(lan))
+                - o_y*(Math.sin(aop)*Math.cos(lan) + Math.cos(aop)*Math.cos(inc)*Math.sin(lan)));
+
+        ret.position.y = (float) ( o_x*(Math.cos(aop)*Math.sin(lan) + Math.sin(aop)*Math.cos(inc)*Math.cos(lan))
+                + o_y*(Math.cos(aop)*Math.cos(inc)*Math.cos(lan) - Math.sin(aop)*Math.sin(lan)));
+
+        ret.position.z = (float) ( o_x*Math.sin(aop)*Math.sin(inc) + o_y*Math.cos(aop)*Math.sin(inc) );
+        
+        // calc Velocity
+        double tmp = Math.sqrt(Math.abs(a)*mi_E)/rc;
+        double ov_x = 0 - tmp*Math.sinh(H);
+        double ov_y = 0 /*-*/ + tmp * Math.sqrt(e*e-1)*Math.cosh(H);
+        
+        ret.velocity.x = (float) ( ov_x*(Math.cos(lan)*Math.cos(aop) - Math.sin(aop)*Math.cos(inc)*Math.sin(lan))
+                - ov_y*(Math.sin(aop)*Math.cos(lan) + Math.cos(aop)*Math.cos(inc)*Math.sin(lan)));
+
+        ret.velocity.y = (float) ( ov_x*(Math.cos(aop)*Math.sin(lan) + Math.sin(aop)*Math.cos(inc)*Math.cos(lan))
+                + ov_y*(Math.cos(aop)*Math.cos(inc)*Math.cos(lan) - Math.sin(aop)*Math.sin(lan)));
+
+        ret.velocity.z = (float) ( ov_x*Math.sin(aop)*Math.sin(inc) + ov_y*Math.cos(aop)*Math.sin(inc) );
+        
+        return ret;
+    }
+    
+    
+    public static double atanh(double x)
+    {
+        return (Math.log(1 + x) - Math.log(1 - x))/2;
+    }
+    
+    public static double acosh(double x)
+    {
+        return Math.log(x + Math.sqrt(x-1)*Math.sqrt(x+1));
+    }
+    
     enum TypeOfPosition
     {
         TrueAnomaly,
@@ -237,7 +379,18 @@ public class OrbitModel {
         
         double eccentricity = eV.len();
         
-        double eccentricAnomaly = 2*Math.atan(Math.tan(trueAnomaly*0.5)/Math.sqrt((1+eccentricity)/(1-eccentricity)));
+        boolean hyperbolic = (eccentricity > 1);
+        
+        double eccentricAnomaly = 0;
+        if(hyperbolic)
+        {
+            eccentricAnomaly = 2*atanh(Math.tan(trueAnomaly*0.5)*Math.sqrt((eccentricity-1)/(eccentricity+1)));
+        }
+        else
+        {
+            eccentricAnomaly = 2*Math.atan(Math.tan(trueAnomaly*0.5)/Math.sqrt((1+eccentricity)/(1-eccentricity)));
+        }
+        
         
         // longitude of ascending node
         double loANode = Math.acos(nV.x/nV.len());
@@ -280,11 +433,27 @@ public class OrbitModel {
         }
         else if(returnPosition == TypeOfPosition.MeanAnomaly)
         {
-            return eccentricAnomaly - eccentricity*Math.sin(eccentricAnomaly);
+            if(hyperbolic)
+            {
+                return eccentricity*Math.sinh(eccentricAnomaly) - eccentricAnomaly;
+            }
+            else
+            {
+                return eccentricAnomaly - eccentricity*Math.sin(eccentricAnomaly);
+            }
         }
         else if(returnPosition == TypeOfPosition.TimeSincePeriapis)
         {
-            double meanAnomaly = eccentricAnomaly - eccentricity*Math.sin(eccentricAnomaly);
+            double meanAnomaly = 0;
+            if(hyperbolic)
+            {
+                meanAnomaly = eccentricity*Math.sinh(eccentricAnomaly) - eccentricAnomaly;
+            }
+            else
+            {
+                meanAnomaly = eccentricAnomaly - eccentricity*Math.sin(eccentricAnomaly);
+            }
+            //double meanAnomaly = eccentricAnomaly - eccentricity*Math.sin(eccentricAnomaly);
             double absA = Math.abs(semiMajorAxis);
             double meanMotion = Math.sqrt(mi_E/(absA*absA*absA));
             
@@ -439,7 +608,14 @@ public class OrbitModel {
         err = Gdx.gl30.glGetError();
         Gdx.gl30.glBindVertexArray(VAOi.get(0));
         err = Gdx.gl30.glGetError();
-        Gdx.gl30.glDrawArrays( GL_LINE_LOOP, 0, numOfVertices);
+        if(e>=1)
+        {
+            Gdx.gl30.glDrawArrays( GL_LINE_STRIP, 0, numOfVertices);
+        }
+        else
+        {
+            Gdx.gl30.glDrawArrays( GL_LINE_LOOP, 0, numOfVertices);
+        }
         err = Gdx.gl30.glGetError();
         
         //orbitMesh.render(shader, GL20.GL_LINES);

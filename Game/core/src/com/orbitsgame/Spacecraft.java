@@ -130,7 +130,7 @@ public class Spacecraft {
         if(thrustLevel <= 0.00)
         {
         timeSincePeriapsis += deltaT;
-        timeSincePeriapsis = orbit.NormalizeTimeSincePeriapsis(timeSincePeriapsis);
+        //timeSincePeriapsis = orbit.NormalizeTimeSincePeriapsis(timeSincePeriapsis);
         
         lastState = orbit.calcOrbitPositionAt(timeSincePeriapsis);
         }
