@@ -7,6 +7,7 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.assets.loaders.ModelLoader;
 
 import com.badlogic.gdx.graphics.GL20;
+import static com.badlogic.gdx.graphics.GL20.GL_BLEND;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -58,7 +59,7 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             cam.far = 20000f;
             cam.update();
 
-            OrbitModel.Init();
+            OrbitModel.Init(cam);
             Spacecraft.Init();
             orbit = new OrbitModel();
 
@@ -87,9 +88,11 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             camController.TransformCam(cam, spacecraft.lastState.position);
             
             Gdx.gl30.glEnable(GL20.GL_DEPTH_TEST);
+
             Gdx.gl30.glDepthFunc(GL20.GL_LESS);
             Gdx.gl30.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-            Gdx.gl30.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+            Gdx.gl30.glClearColor(0, 0, 0, 1); 
+            Gdx.gl30.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT );
 
             modelBatch.begin(cam);
             modelBatch.render(instance);
@@ -100,6 +103,7 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             modelBatch.end();
             Gdx.gl30.glEnable(GL20.GL_DEPTH_TEST);
             Gdx.gl30.glDepthFunc(GL20.GL_LESS);
+            
             orbit.Render(cam);
             
             spController.Update(Gdx.graphics.getDeltaTime());

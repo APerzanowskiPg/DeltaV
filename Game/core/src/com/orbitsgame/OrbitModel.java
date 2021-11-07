@@ -7,13 +7,20 @@ package com.orbitsgame;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
+import static com.badlogic.gdx.graphics.GL20.GL_BLEND;
 import static com.badlogic.gdx.graphics.GL30.*;
 import com.badlogic.gdx.graphics.Mesh;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
+import com.badlogic.gdx.graphics.g3d.decals.Decal;
+import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
+import com.badlogic.gdx.graphics.g3d.decals.DecalMaterial;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Vector3;
@@ -52,6 +59,9 @@ public class OrbitModel {
     float[] vertices;
     short[] indices;
     
+    // RGB color
+    float[] color;
+    
     Mesh orbitMesh;
     Model orbitModel;
     ModelInstance instance;
@@ -81,6 +91,14 @@ public class OrbitModel {
     
     //argument of periapsis[rad]
     double aop = 2.36980806;
+    
+    // markers
+    OrbitMarker APmarker;
+    OrbitMarker PAmarker;
+    OrbitMarker arrivalMarker;
+    OrbitMarker departureMarker;
+    OrbitMarker hoverMarker;
+    OrbitMarker maneuverMarker;
     
     
     // Solves Kepler equation using Newton's method. The equation: E - e*sin(E) - M = 0, given e,M
@@ -500,21 +518,21 @@ public class OrbitModel {
         return t_sinceP % T;
     }
     
-    static void Init()
+    static void Init(Camera cam)
     {
         String vertexShader = Gdx.files.internal("orbit_vertex.glsl").readString();
         String fragmentShader = Gdx.files.internal("orbit_fragment.glsl").readString();
         shader = new ShaderProgram(vertexShader,fragmentShader);
+        
+        OrbitMarker.Init();
     }
     
     OrbitModel()
     {
-        
-        
-        
         VertexAttributes attrs = new VertexAttributes(VertexAttribute.Position());
         //vertices = new float[200*3];
         indices = new short[400];
+        color = new float[] { 1.0f, 1.0f, 1.0f};
         
         vertices = calcOrbitPoints();
         
@@ -566,17 +584,45 @@ public class OrbitModel {
         dirtyModel = false;
         
         
-        /*
-        orbitMesh = new Mesh(false, 200, 400, attrs);
-        //orbitMesh.
-        orbitMesh.setVertices(vertices);
-        orbitMesh.setIndices(indices);
-        //orbitMesh.re
-        ModelBuilder mBuilder = new ModelBuilder();
-        mBuilder.begin();
-        mBuilder.part("curve", orbitMesh, GL20.GL_LINES, new Material());
-        orbitModel = mBuilder.end();
-        instance = new ModelInstance(orbitModel);*/
+        APmarker = new OrbitMarker(OrbitMarker.MarkerType.AP);
+        PAmarker = new OrbitMarker(OrbitMarker.MarkerType.PA);
+        arrivalMarker = new OrbitMarker(OrbitMarker.MarkerType.arrival);
+        departureMarker = new OrbitMarker(OrbitMarker.MarkerType.departure);
+        hoverMarker = new OrbitMarker(OrbitMarker.MarkerType.hover);
+        // todo: there will be a list of maneuvers when(or if?) maneuvers will be implemented
+        //maneuverMarker = new Marker(MarkerType.maneuver);
+        
+        UpdateMarkers();
+    }
+    
+    void UpdateMarkers()
+    {
+        PAmarker.SetMarker(calcOrbitPositionAt(0).position, 0);
+        PAmarker.active = true;
+        if(e<1)
+        {
+            //calc time of apoapsis
+            double APtime = Math.PI*Math.sqrt((a*a*a)/mi_E);
+            APmarker.SetMarker(calcOrbitPositionAt(APtime).position, APtime);
+            
+            // for now there's no patching, so the departure and arrival points are only for hyperbolic instersecting with SOI
+            arrivalMarker.Disable();
+            departureMarker.Disable();
+        }
+        else
+        {
+            // hyperbolic orbits don't have apoapsis
+            APmarker.Disable();
+            
+            // calc eccentric anomaly of departure point
+            double H = acosh(Math.abs((a-SOI)/(a*e)));
+            double depTs = Math.sqrt(Math.abs((a*a*a)/mi_E))*(e*Math.sinh(H)-H);
+            departureMarker.SetMarker(calcOrbitPositionAt(depTs).position, depTs);
+            
+            arrivalMarker.SetMarker(calcOrbitPositionAt(-depTs).position, -depTs);
+            
+            
+        }
     }
     
     void UpdateModel()
@@ -588,6 +634,8 @@ public class OrbitModel {
             FloatBuffer vbo_data = createVerticesBuffer(vertices);
             Gdx.gl30.glBindBuffer(GL_ARRAY_BUFFER, VBO);
             Gdx.gl30.glBufferSubData(GL_ARRAY_BUFFER, 0, numOfVertices*3*4, vbo_data);
+            
+            UpdateMarkers();
             
             dirtyModel = false;
         }
@@ -602,6 +650,7 @@ public class OrbitModel {
         shader.bind();
         err = Gdx.gl30.glGetError();
         shader.setUniformMatrix4fv("u_projTrans", cam.combined.getValues(), 0, 16);
+        shader.setUniform3fv("u_color", color, 0, 3);
         err = Gdx.gl30.glGetError();
         
         Gdx.gl30.glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -619,6 +668,19 @@ public class OrbitModel {
         err = Gdx.gl30.glGetError();
         
         //orbitMesh.render(shader, GL20.GL_LINES);
+        
+        Gdx.gl30.glEnable(GL_BLEND);
+        
+        float[] markerScale = new float[2];
+        markerScale[0] = 45.0f/Gdx.graphics.getWidth();
+        markerScale[1] = 45.0f/Gdx.graphics.getHeight();
+        APmarker.Render(cam, markerScale, color);
+        PAmarker.Render(cam, markerScale, color);
+        arrivalMarker.Render(cam, markerScale, color);
+        departureMarker.Render(cam, markerScale, color);
+        //maneuverMarker.Render(cam, markerScale, color);
+        //hoverMarker.Render(cam, markerScale, color);
+        
     }
     
     void Dispose()
