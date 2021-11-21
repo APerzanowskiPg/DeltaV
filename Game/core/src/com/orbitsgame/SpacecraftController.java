@@ -123,28 +123,34 @@ public class SpacecraftController {
         {
             //spacecraft.orientation.RotateAroundY(10*dt);
             spacecraft.eulerAngles.y += rotVelocity*dt;
+            spacecraft.orientation.RotateAroundPitch(rotVelocity*dt);
         }
         if(pressedS)
         {
             spacecraft.eulerAngles.y -= rotVelocity*dt;
+            spacecraft.orientation.RotateAroundPitch(-rotVelocity*dt);
         }
         
         if(pressedA)
         {
             spacecraft.eulerAngles.x += rotVelocity*dt;
+            spacecraft.orientation.RotateAroundYaw(rotVelocity*dt);
         }
         if(pressedD)
         {
             spacecraft.eulerAngles.x -= rotVelocity*dt;
+            spacecraft.orientation.RotateAroundYaw(-rotVelocity*dt);
         }
         
         if(pressedQ)
         {
             spacecraft.eulerAngles.z += rotVelocity*dt;
+            spacecraft.orientation.RotateAroundRoll(rotVelocity*dt);
         }
         if(pressedE)
         {
             spacecraft.eulerAngles.z -= rotVelocity*dt;
+            spacecraft.orientation.RotateAroundRoll(-rotVelocity*dt);
         }
         if(pressedShift)
         {

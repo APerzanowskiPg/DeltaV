@@ -38,10 +38,13 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
         public ModelBatch modelBatch;
         public OrbitModel orbit;
         
+        public OrbitModel targetOrbit;
+        
         public Spacecraft spacecraft;
         
         public CamController camController;
         public SpacecraftController spController;
+        public AttitudeIndicator attIndicator;
         
         Vector2 camOrientation;
 
@@ -61,7 +64,20 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
 
             OrbitModel.Init(cam);
             Spacecraft.Init();
+            AttitudeIndicator.Init();
+            
+            
             orbit = new OrbitModel();
+            targetOrbit = new OrbitModel();
+            targetOrbit.color = new float[]{1.0f, 0.0f, 1.0f};
+            targetOrbit.e = 0.0002540;
+            targetOrbit.inc = 1.70213759;
+            targetOrbit.lan = 1.53462263;
+            targetOrbit.aop = 1.33423265;
+            targetOrbit.a = 6873;
+            targetOrbit.dirtyModel = true;
+            targetOrbit.UpdateModel();
+            
 
             ModelLoader loader = new ObjLoader();
             model = loader.loadModel(Gdx.files.internal("planet.obj"));
@@ -71,6 +87,7 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             instance.transform.setToScaling(6371.0f, 6371.0f, 6371.0f);
 
             spacecraft = new Spacecraft(orbit, 0, 10, 100, 300);
+            attIndicator = new AttitudeIndicator(spacecraft);
 
             camController = new CamController();
             spController = new SpacecraftController(spacecraft);
@@ -92,7 +109,8 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             Gdx.gl30.glDepthFunc(GL20.GL_LESS);
             Gdx.gl30.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             Gdx.gl30.glClearColor(0, 0, 0, 1); 
-            Gdx.gl30.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT );
+            //Gdx.gl30.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT );
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT | (Gdx.graphics.getBufferFormat().coverageSampling?GL20.GL_COVERAGE_BUFFER_BIT_NV:0));
 
             modelBatch.begin(cam);
             modelBatch.render(instance);
@@ -105,6 +123,8 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             Gdx.gl30.glDepthFunc(GL20.GL_LESS);
             
             orbit.Render(cam);
+            targetOrbit.Render(cam);
+            attIndicator.Render();
             
             spController.Update(Gdx.graphics.getDeltaTime());
 	}
