@@ -113,6 +113,7 @@ public class Spacecraft {
     }
     
     OrbitModel orbit;
+    private GameSessionUI gameUI;
     
     // time since last periapsis(indicates position on orbit)
     double timeSincePeriapsis;
@@ -124,12 +125,13 @@ public class Spacecraft {
     Vector3 eulerAngles;
     
     // spacecraft dry mass(without fuel)[tonnes]
-    double dryMass;
+    double dryMass = 2;
     // mass of fuel in spacecraft[tonnes]
-    double fuelMass;
-    
-    // engine specific impulse[s]
-    double isp;
+    double fuelMass = 8;
+    double startingFuelMass = 8;
+    // engine exhaust velocity[km/s]
+    double Ve = 2.9;
+    double maxMassFlowRatio = 2.9;
     
     // level of thrust(between 0 and 1)
     double thrustLevel;
@@ -148,8 +150,9 @@ public class Spacecraft {
         //modelInstance = new ModelInstance(spacecraftModel);
     }
     
-    Spacecraft(OrbitModel orbModel, double tSincePer, double dMass, double fMass, double spImpulse)
+    Spacecraft(OrbitModel orbModel, double tSincePer, double dMass, double fMass, double spImpulse, GameSessionUI gameSessionUI)
     {
+        gameUI = gameSessionUI;
         modelInstance = new ModelInstance(spacecraftModel);
         orbit = orbModel;
         timeSincePeriapsis = tSincePer;
@@ -157,7 +160,8 @@ public class Spacecraft {
         orientation = new Orientation(Vector3.Z, Vector3.X);
         dryMass = dMass;
         fuelMass = fMass;
-        isp = spImpulse;
+        startingFuelMass = fMass;
+        Ve = spImpulse*0.01;//approx g*isp[m/s] = 0.001*g*isp[km/s]
         thrustLevel = 0;
         eulerAngles = new Vector3(0,0,0);        
         lastState = orbit.calcOrbitPositionAt(timeSincePeriapsis);
@@ -166,7 +170,7 @@ public class Spacecraft {
     //
     void Propagate(double deltaT)
     {
-        if(thrustLevel <= 0.00)
+        if(thrustLevel <= 0.001)
         {
         timeSincePeriapsis += deltaT;
         //timeSincePeriapsis = orbit.NormalizeTimeSincePeriapsis(timeSincePeriapsis);
@@ -174,18 +178,25 @@ public class Spacecraft {
         lastState = orbit.calcOrbitPositionAt(timeSincePeriapsis);
         }
         //threshold for potential float error
-        else if(thrustLevel > 0.001)
+        else
         {
             Vector3 thrustV = new Vector3(Vector3.Z);
-            //modelInstance.transform = modelInstance.transform.mul(spacecraft.orientation.GetTransform());
-            //Matrix4 rotMat = new Matrix4();
-            //rotMat.setFromEulerAngles(eulerAngles.x, eulerAngles.y, eulerAngles.z);
-            //thrustV = thrustV.mul(rotMat);
             
             thrustV = thrustV.mul(orientation.GetTransform());
             
-            // todo: do job on tchiolkovsky model
-            thrustV = thrustV.scl((float)thrustLevel);
+            
+            double acceleration = 0;//(Ve*maxMassFlowRatio*thrustLevel)/(dryMass+fuelMass);
+            if(maxMassFlowRatio*thrustLevel*deltaT <= fuelMass)
+            {
+                acceleration = (Ve*maxMassFlowRatio*thrustLevel)/(dryMass+fuelMass);
+                fuelMass -= maxMassFlowRatio*thrustLevel*deltaT;
+            }
+            gameUI.SetAcceleration((float)acceleration*1000.0f);
+            gameUI.SetFuelMass((float)fuelMass, (float)startingFuelMass);
+            gameUI.SetTotalMass((float)(dryMass+fuelMass));
+            
+            
+            thrustV = thrustV.scl((float)acceleration);
             lastState.velocity = lastState.velocity.add(thrustV.scl((float)deltaT));
             
             timeSincePeriapsis = orbit.SetOrbitFromStateVector(lastState, OrbitModel.TypeOfPosition.TimeSincePeriapis);
@@ -193,6 +204,7 @@ public class Spacecraft {
             timeSincePeriapsis += deltaT;
             lastState = orbit.calcOrbitPositionAt(timeSincePeriapsis);
         }
+        gameUI.SetVelocity(lastState.velocity.len());
     }
     
     void Render(ModelBatch batch)

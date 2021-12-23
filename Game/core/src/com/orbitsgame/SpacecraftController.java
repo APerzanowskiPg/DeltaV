@@ -19,6 +19,7 @@ Using libGdx, source: http://libgdx.com/
 public class SpacecraftController {
     
     private Spacecraft spacecraft;
+    private GameSessionUI gameUI;
     
     boolean pressedW;
     boolean pressedA;
@@ -32,9 +33,10 @@ public class SpacecraftController {
     float thrustVelocity;
     float rotVelocity = 45f;
     
-    SpacecraftController(Spacecraft spacecr)
+    SpacecraftController(Spacecraft spacecr, GameSessionUI gameSessionUI)
     {
         spacecraft = spacecr;
+        gameUI = gameSessionUI;
         thrustVelocity = 0.5f;
     }
     
@@ -159,6 +161,7 @@ public class SpacecraftController {
             {
                 spacecraft.thrustLevel = 1.0f;
             }
+            gameUI.SetThrustLevel((float)spacecraft.thrustLevel);
         }
         if(pressedCtrl)
         {
@@ -166,7 +169,9 @@ public class SpacecraftController {
             if(spacecraft.thrustLevel < 0.0f)
             {
                 spacecraft.thrustLevel = 0.0f;
+                gameUI.SetAcceleration(0);
             }
+            gameUI.SetThrustLevel((float)spacecraft.thrustLevel);
         }
     }
     

@@ -3,6 +3,7 @@ package com.orbitsgame;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Input.Buttons;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.assets.loaders.ModelLoader;
 
@@ -17,6 +18,7 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader;
 
 import com.badlogic.gdx.math.Vector2;
+import com.kotcrab.vis.ui.VisUI;
 
 /*
 Using libGdx, source: http://libgdx.com/
@@ -27,10 +29,12 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
 
         public PerspectiveCamera cam;
 	public Model model;
+        public Model skyboxModel;
         //public Model spacecraftModel;
         //public ModelInstance spacecraftInstance;
         
 	public ModelInstance instance;
+	public ModelInstance skyboxInstance;
 
 	public Model orbitModel;
 	public ModelInstance orbitInstance;
@@ -45,11 +49,24 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
         public CamController camController;
         public SpacecraftController spController;
         public AttitudeIndicator attIndicator;
+        public GameSessionUI gameSessionUI;
         
         Vector2 camOrientation;
 
 	@Override
 	public void create () {
+            Gdx.input.setInputProcessor(new InputMultiplexer());
+            InputMultiplexer inputMultiplexer = (InputMultiplexer) Gdx.input.getInputProcessor();
+            if (!inputMultiplexer.getProcessors().contains(this, true))
+                inputMultiplexer.addProcessor(this);
+            
+            // UI
+            VisUI.load();
+            GameSessionUI.Init();
+            gameSessionUI = new GameSessionUI();
+            
+            
+            
             modelBatch = new ModelBatch();
 
             camOrientation = new Vector2(0,0);
@@ -81,23 +98,28 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
 
             ModelLoader loader = new ObjLoader();
             model = loader.loadModel(Gdx.files.internal("planet.obj"));
+            skyboxModel = loader.loadModel(Gdx.files.internal("skybox.obj"));
 
 
             instance = new ModelInstance(model);
             instance.transform.setToScaling(6371.0f, 6371.0f, 6371.0f);
+            
+            skyboxInstance = new ModelInstance(skyboxModel);
 
-            spacecraft = new Spacecraft(orbit, 0, 10, 100, 300);
+            spacecraft = new Spacecraft(orbit, 0, 1, 9, 300, gameSessionUI);
             attIndicator = new AttitudeIndicator(spacecraft);
 
             camController = new CamController();
-            spController = new SpacecraftController(spacecraft);
-            Gdx.input.setInputProcessor(this);
-                
+            spController = new SpacecraftController(spacecraft, gameSessionUI);
+            //Gdx.input.setInputProcessor(this);
+            
+            
 	}
 
 	@Override
 	public void render () {
-            spacecraft.Propagate(Gdx.graphics.getDeltaTime());
+            double physicsDelta = gameSessionUI.GetTimeMultiplier()*Gdx.graphics.getDeltaTime();
+            spacecraft.Propagate(physicsDelta);
             float dst = cam.position.dst(spacecraft.lastState.position);
             cam.near = 0.5f*dst;
             cam.far = 10000f*dst;
@@ -105,14 +127,30 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             camController.TransformCam(cam, spacecraft.lastState.position);
             
             Gdx.gl30.glEnable(GL20.GL_DEPTH_TEST);
-
-            Gdx.gl30.glDepthFunc(GL20.GL_LESS);
             Gdx.gl30.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             Gdx.gl30.glClearColor(0, 0, 0, 1); 
-            //Gdx.gl30.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT );
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT | (Gdx.graphics.getBufferFormat().coverageSampling?GL20.GL_COVERAGE_BUFFER_BIT_NV:0));
-
+            //render skybox
             modelBatch.begin(cam);
+            
+            skyboxInstance.transform.setToScaling(1000.0f, 1000.0f, 1000.0f);
+            //skyboxInstance.transform.translate(cam.position);
+            //skyboxInstance.transform.setToTranslation(cam.position);
+            //skyboxInstance.transform.scale(1000.0f, 1000.0f, 1000.0f);
+            Gdx.gl30.glCullFace(GL20.GL_CW);
+            Gdx.gl30.glDisable(GL20.GL_DEPTH_TEST);
+            modelBatch.render(skyboxInstance);
+            Gdx.gl30.glEnable(GL20.GL_DEPTH_TEST);
+            
+            //clear depth after rendering skybox
+            Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
+            Gdx.gl30.glCullFace(GL20.GL_CCW);
+            
+            Gdx.gl30.glDepthFunc(GL20.GL_LESS);
+            
+            //Gdx.gl30.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT );
+
+            //modelBatch.begin(cam);
             modelBatch.render(instance);
             spacecraft.Render(modelBatch);
             //modelBatch.render(spacecraftInstance);
@@ -127,12 +165,19 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             attIndicator.Render();
             
             spController.Update(Gdx.graphics.getDeltaTime());
+            
+            //ui
+            gameSessionUI.Render();
 	}
 	
 	@Override
 	public void dispose () {
             model.dispose();
             modelBatch.dispose();
+            
+            //ui
+            gameSessionUI.Dispose();
+            VisUI.dispose();
 	}
 	
 	@Override
