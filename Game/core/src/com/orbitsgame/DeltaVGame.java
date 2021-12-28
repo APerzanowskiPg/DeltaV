@@ -133,10 +133,10 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             //render skybox
             modelBatch.begin(cam);
             
-            skyboxInstance.transform.setToScaling(1000.0f, 1000.0f, 1000.0f);
+            //skyboxInstance.transform.setToScaling(8000.0f, 8000.0f, 8000.0f);
             //skyboxInstance.transform.translate(cam.position);
-            //skyboxInstance.transform.setToTranslation(cam.position);
-            //skyboxInstance.transform.scale(1000.0f, 1000.0f, 1000.0f);
+            skyboxInstance.transform.setToTranslation(cam.position);
+            skyboxInstance.transform.scale(0.99f*cam.far, 0.99f*cam.far, 0.99f*cam.far);
             Gdx.gl30.glCullFace(GL20.GL_CW);
             Gdx.gl30.glDisable(GL20.GL_DEPTH_TEST);
             modelBatch.render(skyboxInstance);
@@ -144,6 +144,7 @@ public class DeltaVGame implements ApplicationListener, InputProcessor {
             
             //clear depth after rendering skybox
             Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
+            Gdx.gl.glFlush();
             Gdx.gl30.glCullFace(GL20.GL_CCW);
             
             Gdx.gl30.glDepthFunc(GL20.GL_LESS);
