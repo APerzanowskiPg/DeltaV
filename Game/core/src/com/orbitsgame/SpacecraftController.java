@@ -135,12 +135,12 @@ public class SpacecraftController {
         
         if(pressedA)
         {
-            spacecraft.eulerAngles.x += rotVelocity*dt;
+            spacecraft.eulerAngles.x -= rotVelocity*dt;
             spacecraft.orientation.RotateAroundYaw(rotVelocity*dt);
         }
         if(pressedD)
         {
-            spacecraft.eulerAngles.x -= rotVelocity*dt;
+            spacecraft.eulerAngles.x += rotVelocity*dt;
             spacecraft.orientation.RotateAroundYaw(-rotVelocity*dt);
         }
         
