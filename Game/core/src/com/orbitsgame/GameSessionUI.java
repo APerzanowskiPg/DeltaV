@@ -53,6 +53,7 @@ public class GameSessionUI {
     private VisLabel fuelMassIndicator;
     private VisLabel accelerationIndicator;
     private VisLabel velocityIndicator;
+    private VisLabel deltaVIndicator;
     
     
     //assets
@@ -119,6 +120,8 @@ public class GameSessionUI {
         accelerationIndicator.setAlignment(Align.left);
         velocityIndicator = new VisLabel("Prędkość[km/s]: 0");
         velocityIndicator.setAlignment(Align.left);
+        deltaVIndicator = new VisLabel("DeltaV[km/s]: 0");
+        deltaVIndicator.setAlignment(Align.left);
         spacecraftIndicatorsGroup.add(totalMassIndicator).left();
         spacecraftIndicatorsGroup.row();
         spacecraftIndicatorsGroup.add(fuelMassIndicator).left();
@@ -126,6 +129,7 @@ public class GameSessionUI {
         spacecraftIndicatorsGroup.add(accelerationIndicator).left();
         spacecraftIndicatorsGroup.row();
         spacecraftIndicatorsGroup.add(velocityIndicator).left();
+        spacecraftIndicatorsGroup.add(deltaVIndicator).left();
         bottomUIPanelLeft.add(spacecraftIndicatorsGroup).fillX().expandX();
         
         
@@ -239,5 +243,11 @@ public class GameSessionUI {
     void SetVelocity(float velocity)
     {
         velocityIndicator.setText("Prędkość[km/s]: " + String.format("%.2f", velocity));
+    }
+    
+    // @deltaV - deltaV in km/s
+    void SetDeltaV(float deltaV)
+    {
+        deltaVIndicator.setText("DelatV[km/s]: " + String.format("%.2f", deltaV));
     }
 }

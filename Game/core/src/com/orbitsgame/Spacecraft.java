@@ -194,6 +194,7 @@ public class Spacecraft {
             gameUI.SetAcceleration((float)acceleration*1000.0f);
             gameUI.SetFuelMass((float)fuelMass, (float)startingFuelMass);
             gameUI.SetTotalMass((float)(dryMass+fuelMass));
+            gameUI.SetDeltaV((float)(Ve*Math.log((dryMass+fuelMass)/dryMass)));
             
             
             thrustV = thrustV.scl((float)acceleration);
