@@ -9,6 +9,7 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -49,15 +50,20 @@ public class GameMenuUI {
     private VisTextButton goLevelBackButton;
     private LevelPlayerData[] levelsList;
     
+    // background
+    private SpriteBatch spBatch;
+    static private Texture bcgTex;
+    
+    
     static void Init()
     {
-        float x = 1;
+        bcgTex = new Texture(Gdx.files.internal("background.png"));
     }
     
     GameMenuUI(DeltaVGame game)
     {
         this.game = game;
-        
+        spBatch = new SpriteBatch();
         
         
         stage = new Stage(new ScreenViewport());
@@ -131,6 +137,10 @@ public class GameMenuUI {
     
     void Render()
     {
+        spBatch.begin();
+        spBatch.draw(bcgTex, 0, 0);
+        spBatch.end();
+        
         stage.draw();
         for(int i=0; i<levelsList.length; ++i)
         {

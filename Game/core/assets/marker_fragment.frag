@@ -22,7 +22,7 @@ out vec4 color;//gl_FragColor;
 
 void main()
 {
-    /*gl_FragColor*/color = texture2D(u_texture, v_texCoords);
+    /*gl_FragColor*/color = texture(u_texture, v_texCoords);
     color.x = color.x*u_color.x;
     color.y = color.x*u_color.y;
     color.z = color.x*u_color.z;
