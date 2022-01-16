@@ -6,6 +6,7 @@ package com.orbitsgame;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -22,6 +23,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.widget.VisImageButton;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisProgressBar;
+import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisWindow;
 
 /**
@@ -36,6 +38,12 @@ public class GameSessionUI {
     
     private VisWindow timeControlWnd;
     private Cell<Button>[] timeWarpButtons;
+    // menu buttons
+    private VisWindow menuWnd;
+    private Cell<VisTextButton> completeButton;
+    private Cell<VisTextButton> restartButton;
+    private Cell<VisTextButton> goToMenuButton;
+    
     private int currentWarpIndex;
     final private int[] timeWarpMultipliers = {1, 2, 3, 4, 5, 10, 50, 100, 1000, 10000, 100000};
     //UI elements
@@ -68,6 +76,8 @@ public class GameSessionUI {
     static TextureRegionDrawable timeWarpButtonOnDrawable;
     static TextureRegionDrawable bottomNavUIDrawable;
     
+    DeltaVGame game;
+    
     static void Init()
     {
         Texture timeWarpButtonOffTex = new Texture(Gdx.files.internal("time_warp_button_off.png"));
@@ -79,8 +89,9 @@ public class GameSessionUI {
         bottomNavUIDrawable = new TextureRegionDrawable(bottomNavUITex);
     }
     
-    GameSessionUI(LevelSession launchingSession)
+    GameSessionUI(LevelSession launchingSession, DeltaVGame game)
     {
+        this.game = game;
         level = launchingSession;
         
         stage = new Stage(new ScreenViewport());
@@ -91,6 +102,7 @@ public class GameSessionUI {
         timeControlWnd.setSize(230, 60);
         timeControlWnd.setPosition(0, Gdx.graphics.getHeight());
         timeControlWnd.setMovable(false);
+        
         
         currentWarpIndex = 0;
         //timeWarpButtons = new Button[11];
@@ -104,6 +116,22 @@ public class GameSessionUI {
         UpdateWarpDisplay();
         
         stage.addActor(timeControlWnd);
+        
+        //menu
+        menuWnd = new VisWindow("Opcje");
+        menuWnd.setSize(180, 80);
+        menuWnd.setPosition(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        menuWnd.setMovable(false);
+        
+        completeButton = menuWnd.add(new VisTextButton("Zakończ")).height(60);
+        completeButton.getActor().setDisabled(true);
+        completeButton.getActor().addListener(new MenuButtonsListener());
+        restartButton = menuWnd.add(new VisTextButton("Restart")).height(60);
+        restartButton.getActor().addListener(new MenuButtonsListener());
+        goToMenuButton = menuWnd.add(new VisTextButton("Wyjdź")).height(60);
+        goToMenuButton.getActor().addListener(new MenuButtonsListener());
+        
+        stage.addActor(menuWnd);
         
         bottomUIPanel = new Table();
         bottomUIPanel.setBackground(bottomNavUIDrawable);
@@ -199,8 +227,43 @@ public class GameSessionUI {
     
     void Render()
     {
-        orbitVelocityErrorIndicator.setText("Błąd prędkości[km/s]: " + String.format("%.2f", level.GetVelocityError()));
-        orbitPositionErrorIndicator.setText("Błąd położenia[km]: " + String.format("%.2f", level.GetPosError()));
+        String velVal;
+        String posVal;
+        float velError = level.GetVelocityError();
+        float posError = level.GetPosError();
+        
+        boolean underThresh = false;
+        if(velError <= level.desc.velocityErrorThreshold)
+        {
+            underThresh = true;
+            velVal = String.format("%.2f", velError) + " < " + String.format("%.2f", level.desc.velocityErrorThreshold);
+            orbitVelocityErrorIndicator.setColor(Color.GREEN);
+        }
+        else
+        {
+            underThresh = false;
+            velVal = String.format("%.2f", velError) + " > " + String.format("%.2f", level.desc.velocityErrorThreshold);
+            orbitVelocityErrorIndicator.setColor(Color.WHITE);
+        }
+        
+        
+        if(posError <= level.desc.posErrorThreshold)
+        {
+            posVal = String.format("%.2f", posError) + " < " + String.format("%.2f", level.desc.posErrorThreshold);
+            orbitPositionErrorIndicator.setColor(Color.GREEN);
+        }
+        else
+        {
+            underThresh = false;
+            posVal = String.format("%.2f", posError) + " > " + String.format("%.2f", level.desc.posErrorThreshold);
+            orbitPositionErrorIndicator.setColor(Color.WHITE);
+        }
+        
+        
+        orbitVelocityErrorIndicator.setText("Błąd prędkości[km/s]: " + velVal);
+        orbitPositionErrorIndicator.setText("Błąd położenia[km]: " + posVal);
+        
+        completeButton.getActor().setDisabled(!underThresh);
         
         stage.draw();
         stage.act();
@@ -227,6 +290,38 @@ public class GameSessionUI {
                 }
             }
             UpdateWarpDisplay();
+        }
+    }
+    
+    class MenuButtonsListener extends ClickListener
+    {
+        @Override
+        public void clicked(InputEvent event, float x, float y) 
+        {
+            VisTextButton button = (VisTextButton)(event.getTarget().getParent());
+            if(button == goToMenuButton.getActor())
+            {
+                game.playingLevel = false;
+                game.level = null;
+                game.gameMenu.GiveControl();
+            }
+            else if(button == restartButton.getActor())
+            {
+                game.level = new LevelSession(level.levelPlayerData.desc, level.levelPlayerData);
+            }
+            else if(button == completeButton.getActor())
+            {
+                if(!completeButton.getActor().isDisabled())
+                {
+                    level.levelPlayerData.playerCompleted = true;
+                    level.levelPlayerData.playerClosesPos = Math.min(level.GetPosError(), level.levelPlayerData.playerClosesPos);
+                    level.levelPlayerData.playerClosesVel = Math.min(level.GetVelocityError(), level.levelPlayerData.playerClosesVel);
+                    level.levelPlayerData.UnlockNext();
+                    game.gameMenu.GiveControl();
+                    game.playingLevel = false;
+                    game.level = null;
+                }
+            }
         }
     }
     

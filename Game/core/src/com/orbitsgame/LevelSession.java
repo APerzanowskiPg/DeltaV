@@ -18,6 +18,7 @@ import com.badlogic.gdx.graphics.g3d.loader.ObjLoader;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.kotcrab.vis.ui.VisUI;
+import com.orbitsgame.GameMenuUI.LevelPlayerData;
 
 /**
  *
@@ -26,6 +27,7 @@ import com.kotcrab.vis.ui.VisUI;
 public class LevelSession implements InputProcessor {
     
     static public class LevelDesc{
+        String name = "Manewr transferowy Hohmanna - część 1";
         // starting orbit description
         /*double targetOrbit_e = 0.0002540;
         double targetOrbit_inc = 1.70213759;
@@ -86,8 +88,12 @@ public class LevelSession implements InputProcessor {
 
     Vector2 camOrientation;
     
-    public static void Init()
+    LevelPlayerData levelPlayerData;
+    static DeltaVGame game;
+    
+    public static void Init(DeltaVGame deltaGame)
     {
+        game = deltaGame;
         GameSessionUI.Init();
         
         cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -107,8 +113,10 @@ public class LevelSession implements InputProcessor {
         skyboxModel = loader.loadModel(Gdx.files.internal("skybox.obj"));
     }
     java.util.logging.Logger logger;
-    LevelSession(LevelDesc levelDescription)
+    
+    LevelSession(LevelDesc levelDescription, LevelPlayerData levelPlayerData)
     {
+        this.levelPlayerData = levelPlayerData;
         logger = java.util.logging.Logger.getLogger(this.getClass().getName());
         desc = levelDescription;
         
@@ -119,7 +127,7 @@ public class LevelSession implements InputProcessor {
                 inputMultiplexer.addProcessor(this);
             
         // UI
-        gameSessionUI = new GameSessionUI(this);
+        gameSessionUI = new GameSessionUI(this, game);
 
         modelBatch = new ModelBatch();
 

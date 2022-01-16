@@ -38,7 +38,7 @@ public class CamController {
     {
         orientation = new Vector2(0,0);
         dragging = false;
-        scrollLevel = 0f;
+        scrollLevel = 8f;
         baseDst = 5f;
         dst = 5f;
         

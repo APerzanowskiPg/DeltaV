@@ -28,21 +28,32 @@ Using libGdx, source: http://libgdx.com/
 public class DeltaVGame implements ApplicationListener {
 
     public LevelSession level;
+    public GameMenuUI gameMenu;
+    public boolean playingLevel = false;
 
     @Override
     public void create () {
         //static res load
         VisUI.load();
-        LevelSession.Init();
+        GameMenuUI.Init();
+        LevelSession.Init(this);
         
-        LevelSession.LevelDesc desc = new LevelSession.LevelDesc(); 
-        level = new LevelSession(desc);
+        gameMenu = new GameMenuUI(this);
+        //LevelSession.LevelDesc desc = new LevelSession.LevelDesc(); 
+        //level = new LevelSession(desc);
 
     }
 
     @Override
     public void render () {
-        level.render();
+        if(playingLevel)
+        {
+            level.render();
+        }
+        else
+        {
+            gameMenu.Render();
+        }
     }
 
     @Override
