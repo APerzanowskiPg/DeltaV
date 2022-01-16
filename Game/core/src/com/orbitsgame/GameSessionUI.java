@@ -29,6 +29,8 @@ import com.kotcrab.vis.ui.widget.VisWindow;
  * @author adrian
  */
 public class GameSessionUI {
+    private LevelSession level;
+    
     private Stage stage;
     private Table root;
     
@@ -48,6 +50,7 @@ public class GameSessionUI {
     private VisProgressBar fuelBar;
     
     // text indicators
+    // left panel
     private Table spacecraftIndicatorsGroup;
     private VisLabel totalMassIndicator;
     private VisLabel fuelMassIndicator;
@@ -55,6 +58,10 @@ public class GameSessionUI {
     private VisLabel velocityIndicator;
     private VisLabel deltaVIndicator;
     
+    // right panel
+    private Table orbitElementsGroup;
+    private VisLabel orbitVelocityErrorIndicator;
+    private VisLabel orbitPositionErrorIndicator;
     
     //assets
     static TextureRegionDrawable timeWarpButtonOffDrawable;
@@ -72,8 +79,10 @@ public class GameSessionUI {
         bottomNavUIDrawable = new TextureRegionDrawable(bottomNavUITex);
     }
     
-    GameSessionUI()
+    GameSessionUI(LevelSession launchingSession)
     {
+        level = launchingSession;
+        
         stage = new Stage(new ScreenViewport());
         root = new Table();
         root.setFillParent(true);
@@ -152,7 +161,17 @@ public class GameSessionUI {
         //thrustBar.
         bottomUIPanelLeft.add(thrusterBarColumn).padLeft(10);
         
-
+        orbitElementsGroup = new Table();
+        orbitVelocityErrorIndicator = new VisLabel("Błąd prędkości[km/s]: 0");
+        orbitVelocityErrorIndicator.setAlignment(Align.left);
+        orbitElementsGroup.add(orbitVelocityErrorIndicator).left();
+        orbitElementsGroup.row();
+        orbitPositionErrorIndicator = new VisLabel("Błąd położenia[km]: 0");
+        orbitPositionErrorIndicator.setAlignment(Align.left);
+        orbitElementsGroup.add(orbitPositionErrorIndicator).left();
+        orbitElementsGroup.row();
+        bottomUIPanelRight.add(orbitElementsGroup).fillX().expandX();
+        
         
         stage.addActor(bottomUIPanel);
         
@@ -180,6 +199,9 @@ public class GameSessionUI {
     
     void Render()
     {
+        orbitVelocityErrorIndicator.setText("Błąd prędkości[km/s]: " + String.format("%.2f", level.GetVelocityError()));
+        orbitPositionErrorIndicator.setText("Błąd położenia[km]: " + String.format("%.2f", level.GetPosError()));
+        
         stage.draw();
         stage.act();
     }

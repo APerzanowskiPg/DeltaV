@@ -146,17 +146,6 @@ public class AttitudeIndicator {
         //modelInstance.transform.rotate(0, 0, 1, 90);
         
         
-        //  centralize
-        /*Matrix4 centMat = new Matrix4();
-        Vector3 up = new Vector3(spacecraft.orientation.GetUp());
-        Vector3 zplaneUp = new Vector3(up);
-        zplaneUp.x = 0;
-        float zrot = (float)(Math.atan2(zplaneUp.len(), up.z));
-        Vector3 pivot = (new Vector3(up)).crs(Vector3.Z);
-        
-        float zrot2 = (float)(Math.atan2(zplaneUp.x, zplaneUp.y));
-        centMat.rotate(Vector3.X, (float)Math.toDegrees(zrot2));
-        centMat.rotate(Vector3.Z, (float)Math.toDegrees(zrot));*/
         
         Matrix4 centMat = new Matrix4();
         Vector3 u = new Vector3(spacecraft.orientation.GetUp());
@@ -191,11 +180,6 @@ public class AttitudeIndicator {
         markersMat.setToTranslation(size, 0.5f*Gdx.graphics.getWidth(), 0);
         markersMat.scale(size, size, size);
         markersMat.mul(rotMat);
-        //markersMat.rotate(0, 1, 0, -90);
-        //rotMat.translate(z,0,size);
-        //rotMat.scale(size, size, size);
-        //rotMat.rotate(0, 1, 0, -90);
-        //rotMat.mul(cam.combined);
         
         // update markers loc
         progradeMarker.orientation.set(spacecraft.lastState.velocity).nor();

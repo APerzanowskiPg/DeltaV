@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.kotcrab.vis.ui.VisUI;
 
 /**
@@ -26,11 +27,17 @@ public class LevelSession implements InputProcessor {
     
     static public class LevelDesc{
         // starting orbit description
-        double targetOrbit_e = 0.0002540;
+        /*double targetOrbit_e = 0.0002540;
         double targetOrbit_inc = 1.70213759;
         double targetOrbit_lan = 1.53462263;
         double targetOrbit_aop = 1.33423265;
-        double targetOrbit_a = 6873;
+        double targetOrbit_a = 6873;*/
+        
+        double targetOrbit_e = 0.0004112;
+        double targetOrbit_inc = 0.901357839;
+        double targetOrbit_lan = 1.1015471;
+        double targetOrbit_aop = 2.36980806;
+        double targetOrbit_a = 10000;
         
         double startOrbit_e = 0.0004112;
         double startOrbit_inc = 0.901357839;
@@ -47,6 +54,9 @@ public class LevelSession implements InputProcessor {
         // engine specific impulse[s]
         double spacecraft_isp = 300;
         double spacecraft_maxMassFlowRatio = 2.9;
+        
+        double velocityErrorThreshold = 0.1;
+        double posErrorThreshold = 200;
         
         LevelDesc() {}
     }
@@ -96,9 +106,10 @@ public class LevelSession implements InputProcessor {
         model = loader.loadModel(Gdx.files.internal("planet.obj"));
         skyboxModel = loader.loadModel(Gdx.files.internal("skybox.obj"));
     }
-    
+    java.util.logging.Logger logger;
     LevelSession(LevelDesc levelDescription)
     {
+        logger = java.util.logging.Logger.getLogger(this.getClass().getName());
         desc = levelDescription;
         
         // start level, load resources, etc.
@@ -108,7 +119,7 @@ public class LevelSession implements InputProcessor {
                 inputMultiplexer.addProcessor(this);
             
         // UI
-        gameSessionUI = new GameSessionUI();
+        gameSessionUI = new GameSessionUI(this);
 
         modelBatch = new ModelBatch();
 
@@ -204,6 +215,64 @@ public class LevelSession implements InputProcessor {
 
         //ui
         gameSessionUI.Render();
+    }
+    
+    public float GetVelocityError()
+    {
+        /*//calc relative MSE
+        double errA = Math.pow((desc.targetOrbit_a - spacecraft.orbit.a)/desc.targetOrbit_a, 2);
+        double errE = Math.pow((desc.targetOrbit_e - spacecraft.orbit.e)/desc.targetOrbit_e, 2);
+        double errInc = Math.pow((desc.targetOrbit_inc - spacecraft.orbit.inc)/desc.targetOrbit_inc, 2);
+        double errLan = Math.pow((desc.targetOrbit_lan - spacecraft.orbit.lan)/desc.targetOrbit_lan, 2);
+        double errAop = Math.pow((desc.targetOrbit_aop - spacecraft.orbit.aop)/desc.targetOrbit_aop, 2);
+        
+        return (float)(0.2*(errA + errE + errInc + errLan + errAop));*/
+        
+        //calc eq target position
+        // calc eq time since periapsis
+        double spacecraftCycle = 2*Math.PI/Math.sqrt(OrbitModel.mi_E/(Math.abs(spacecraft.orbit.a*spacecraft.orbit.a*spacecraft.orbit.a)));
+        double targetCycle = 2*Math.PI/Math.sqrt(OrbitModel.mi_E/(Math.abs(desc.targetOrbit_a*desc.targetOrbit_a*desc.targetOrbit_a)));
+        //double eqTimeSincePeriapsis = (desc.targetOrbit_lan - spacecraft.orbit.lan + spacecraft.timeSincePeriapsis/spacecraftCycle)*targetCycle;
+        double eqTimeSincePeriapsis = ((spacecraft.orbit.aop - desc.targetOrbit_aop)/(2*Math.PI) + spacecraft.timeSincePeriapsis/spacecraftCycle)*targetCycle;
+        eqTimeSincePeriapsis = eqTimeSincePeriapsis % targetCycle;
+        
+        OrbitModel.StateVector targetState = targetOrbit.calcOrbitPositionAt(eqTimeSincePeriapsis);
+        
+        // calc velocity error
+        Vector3 errorVec = new Vector3(targetState.velocity);
+        errorVec.sub(spacecraft.lastState.velocity);
+        
+        //int spTspDeg = (int)(360.0f*spacecraft.timeSincePeriapsis/spacecraftCycle);
+        //int eqTspDeg = (int)(360.0f*eqTimeSincePeriapsis/targetCycle);
+        
+        //logger.info("tsp: " + spTspDeg + "   ;   eqTsp: " + eqTspDeg);
+        
+        return errorVec.len();
+    }
+    
+    public float GetPosError()
+    {
+        
+        //calc eq target position
+        // calc eq time since periapsis
+        double spacecraftCycle = 2*Math.PI/Math.sqrt(OrbitModel.mi_E/(Math.abs(spacecraft.orbit.a*spacecraft.orbit.a*spacecraft.orbit.a)));
+        double targetCycle = 2*Math.PI/Math.sqrt(OrbitModel.mi_E/(Math.abs(desc.targetOrbit_a*desc.targetOrbit_a*desc.targetOrbit_a)));
+        //double eqTimeSincePeriapsis = (desc.targetOrbit_lan - spacecraft.orbit.lan + spacecraft.timeSincePeriapsis/spacecraftCycle)*targetCycle;
+        double eqTimeSincePeriapsis = ((spacecraft.orbit.aop - desc.targetOrbit_aop)/(2*Math.PI) + spacecraft.timeSincePeriapsis/spacecraftCycle)*targetCycle;
+        eqTimeSincePeriapsis = eqTimeSincePeriapsis % targetCycle;
+        
+        OrbitModel.StateVector targetState = targetOrbit.calcOrbitPositionAt(eqTimeSincePeriapsis);
+        
+        // calc velocity error
+        Vector3 errorVec = new Vector3(targetState.position);
+        errorVec.sub(spacecraft.lastState.position);
+        
+        //int spTspDeg = (int)(360.0f*spacecraft.timeSincePeriapsis/spacecraftCycle);
+        //int eqTspDeg = (int)(360.0f*eqTimeSincePeriapsis/targetCycle);
+        
+        //logger.info("tsp: " + spTspDeg + "   ;   eqTsp: " + eqTspDeg);
+        
+        return errorVec.len();
     }
     
     public void dispose () {

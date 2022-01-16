@@ -142,8 +142,11 @@ public class Spacecraft {
     static Model spacecraftModel;
     ModelInstance modelInstance;
     
+    java.util.logging.Logger logger;
+    
     static void Init()
     {
+        
         ModelLoader loader = new ObjLoader();
         
         spacecraftModel = loader.loadModel(Gdx.files.internal("shezhou.obj"));
@@ -152,6 +155,8 @@ public class Spacecraft {
     
     Spacecraft(OrbitModel orbModel, double tSincePer, double dMass, double fMass, double spImpulse, GameSessionUI gameSessionUI)
     {
+        logger = java.util.logging.Logger.getLogger(this.getClass().getName());
+        
         gameUI = gameSessionUI;
         modelInstance = new ModelInstance(spacecraftModel);
         orbit = orbModel;
@@ -206,6 +211,7 @@ public class Spacecraft {
             lastState = orbit.calcOrbitPositionAt(timeSincePeriapsis);
         }
         gameUI.SetVelocity(lastState.velocity.len());
+        //logger.info("a: " + orbit.a + "; e: " + orbit.e + "; inc: " + orbit.inc + "; aop: " + orbit.aop + "; lan: " + orbit.lan + "; tsp: " + timeSincePeriapsis);
     }
     
     void Render(ModelBatch batch)

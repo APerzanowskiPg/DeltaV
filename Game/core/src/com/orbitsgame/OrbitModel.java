@@ -74,9 +74,9 @@ public class OrbitModel {
     
     
     // hardoced Earth mi(G*Mearth) in [km^3/s^2]
-    double mi_E = 3.986e5;
+    static double mi_E = 3.986e5;
     // hardcoded Sphere of Influence of Earth
-    double SOI = 929000;
+    static double SOI = 929000;
     
     //orbit params
     // a - semi-major axis in [km]
@@ -387,7 +387,13 @@ public class OrbitModel {
         Vector3 nV = new Vector3(0-hV.y, hV.x, 0);
         
         // trueAnomaly(v) in [rad]
-        double trueAnomaly = Math.acos((new Vector3(eV)).dot(state.position)/(eV.len()*state.position.len()));
+        double trueAnomalyCos = (new Vector3(eV)).dot(state.position)/(eV.len()*state.position.len());
+        if( trueAnomalyCos > 1 )
+            trueAnomalyCos = 1;
+        if( trueAnomalyCos < -1 )
+            trueAnomalyCos = -1;
+        
+        double trueAnomaly = Math.acos(trueAnomalyCos);
         if(state.position.dot(state.velocity) < 0)
         {
             trueAnomaly = 2*Math.PI - trueAnomaly;
