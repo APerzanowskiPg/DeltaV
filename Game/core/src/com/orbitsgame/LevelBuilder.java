@@ -117,6 +117,63 @@ public class LevelBuilder {
             desc.posErrorThreshold = 300;
         }
         
+        else if(levelId == 4)
+        {
+            desc.name = "Manewr transferowy Hohmanna - odwrotnie";
+            desc.startOrbit_e = 0.0004112;
+            desc.startOrbit_inc = 0.901357839;
+            desc.startOrbit_lan = 1.1015471;
+            desc.startOrbit_aop = 2.36980806;
+            desc.startOrbit_a = 10000;
+
+            desc.targetOrbit_e = 0.0004112;
+            desc.targetOrbit_inc = 0.901357839;
+            desc.targetOrbit_lan = 1.1015471;
+            desc.targetOrbit_aop = 2.36980806;
+            desc.targetOrbit_a = 6798;
+            desc.start_timeSincePeriapsis = 0;
+
+            // dry mass in spacecraft[tonnes]
+            desc.spacecraft_dryMass = 2;
+            // mass of fuel in spacecraft[tonnes]
+            desc.spacecraft_fuelMass = 8;
+            desc.spacecraft_startingFuelMass = 8;
+            // engine specific impulse[s]
+            desc.spacecraft_isp = 300;
+            desc.spacecraft_maxMassFlowRatio = 2.9;
+
+            desc.velocityErrorThreshold = 0.15;
+            desc.posErrorThreshold = 300;
+        }
+        
+        else if(levelId == 5)
+        {
+            desc.name = "Zmiana inklinacji";
+            desc.startOrbit_e = 0.0004112;
+            desc.startOrbit_inc = 0.901357839;
+            desc.startOrbit_lan = 1.1015471;
+            desc.startOrbit_aop = 2.36980806;
+            desc.startOrbit_a = 6798;
+
+            desc.targetOrbit_e = 0.0004112;
+            desc.targetOrbit_inc = 1.901357839;
+            desc.targetOrbit_lan = 1.1015471;
+            desc.targetOrbit_aop = 2.36980806;
+            desc.targetOrbit_a = 6798;
+            desc.start_timeSincePeriapsis = 0;
+
+            // dry mass in spacecraft[tonnes]
+            desc.spacecraft_dryMass = 2;
+            // mass of fuel in spacecraft[tonnes]
+            desc.spacecraft_fuelMass = 8;
+            desc.spacecraft_startingFuelMass = 8;
+            // engine specific impulse[s]
+            desc.spacecraft_isp = 300;
+            desc.spacecraft_maxMassFlowRatio = 2.9;
+
+            desc.velocityErrorThreshold = 0.15;
+            desc.posErrorThreshold = 300;
+        }
          
         ret = gameUI.new LevelPlayerData(levelsGroup, desc);
         return ret;

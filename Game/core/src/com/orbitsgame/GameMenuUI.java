@@ -130,7 +130,9 @@ public class GameMenuUI {
         levelsList = new LevelPlayerData[]{
             LevelBuilder.BuildLevel(levelsGroup, 1, this), 
             LevelBuilder.BuildLevel(levelsGroup, 2, this), 
-            LevelBuilder.BuildLevel(levelsGroup, 3, this)
+            LevelBuilder.BuildLevel(levelsGroup, 3, this),
+            LevelBuilder.BuildLevel(levelsGroup, 4, this),
+            LevelBuilder.BuildLevel(levelsGroup, 5, this),
         };
         levelsList[0].available = true;
     }
